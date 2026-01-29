@@ -1,0 +1,106 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shiphaevolve"
+version = "0.1.0"
+description = "LLM-Based Code Evolution Framework - IDE/LSP integration meets advanced evolutionary algorithms"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Jakob Faber", email = "jakob@example.com"}
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Code Generators",
+]
+keywords = ["llm", "code-evolution", "genetic-programming", "lsp", "ide-integration"]
+
+dependencies = [
+    # Configuration
+    "hydra-core>=1.3.2",
+    "omegaconf>=2.3.0",
+    
+    # LLM Clients
+    "openai>=1.0.0",
+    "litellm>=1.0.0",
+    "tiktoken>=0.5.0",
+    
+    # Database & Embeddings
+    "numpy>=1.24.0",
+    "scikit-learn>=1.3.0",  # for cosine similarity in novelty judge
+    
+    # LSP Server
+    "pygls>=1.0.0",
+    "lsprotocol>=2023.0.0",
+    
+    # Utilities
+    "pyyaml>=6.0",
+    "docker>=6.0.0",
+    "pydantic>=2.0.0",
+    "rich>=13.0.0",  # for pretty logging
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+    "pre-commit>=3.0.0",
+]
+slurm = [
+    "submitit>=1.4.0",  # FAIR's Slurm job submission
+]
+notebooks = [
+    "jupyter>=1.0.0",
+    "matplotlib>=3.7.0",
+    "scienceplots>=2.0.0",
+    "pandas>=2.0.0",
+]
+
+[project.scripts]
+shipha = "shipha.cli:main"
+shipha-lsp = "shipha.lsp_server:main"
+
+[project.urls]
+Homepage = "https://github.com/jakobfaber/ShiphaEvolve"
+Documentation = "https://github.com/jakobfaber/ShiphaEvolve#readme"
+Repository = "https://github.com/jakobfaber/ShiphaEvolve.git"
+Issues = "https://github.com/jakobfaber/ShiphaEvolve/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["shipha*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "I", "UP", "B", "C4"]
+ignore = ["E501"]  # line too long (handled by black)
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --tb=short"

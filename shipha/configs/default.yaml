@@ -1,0 +1,164 @@
+# ============================================================================
+#                    ⚠️  YAML CONFIG IS DEPRECATED  ⚠️
+# ============================================================================
+#
+# This YAML configuration format is provided for BACKWARD COMPATIBILITY ONLY.
+# It will be REMOVED in ShiphaEvolve v1.0.
+#
+# RECOMMENDED: Use Python dataclasses with Hydra structured configs:
+#
+#     from shipha.core import EvolutionConfig, LLMConfig, EvaluatorConfig
+#
+#     config = EvolutionConfig(
+#         task_name="my_task",
+#         max_generations=50,
+#         llm=LLMConfig(models=["gpt-4", "claude-3-sonnet"]),
+#         evaluator=EvaluatorConfig(trust_level="SANDBOX"),
+#     )
+#
+# See shipha/core/config.py for the full schema with type hints and defaults.
+#
+# ============================================================================
+
+defaults:
+  - _self_
+
+# ============================================================================
+# Evolution Settings
+# ============================================================================
+evolution:
+  task_name: "unnamed_task"
+  max_generations: 100
+  population_size: 10  # programs to maintain in database
+  elite_count: 2        # best programs preserved each generation
+  
+  # Parent selection
+  selection:
+    method: "tournament"  # tournament, roulette, rank
+    tournament_size: 3
+    
+  # Mutation vs Crossover ratio
+  mutation_rate: 0.7     # 70% mutations, 30% crossover
+  
+  # Convergence criteria
+  early_stop:
+    enabled: true
+    patience: 20         # generations without improvement
+    min_delta: 0.001     # minimum improvement threshold
+
+# ============================================================================
+# LLM Configuration
+# ============================================================================
+llm:
+  # Available models for multi-armed bandit selection
+  models:
+    - "gpt-4o"
+    - "gpt-4o-mini"
+    - "claude-3-5-sonnet-20241022"
+    - "claude-3-5-haiku-20241022"
+  
+  # Bandit algorithm for model selection
+  bandit:
+    algorithm: "asymmetric_ucb"  # asymmetric_ucb, thompson, epsilon_greedy
+    exploration_weight: 2.0
+    
+  # Generation parameters
+  temperature: 0.7
+  max_tokens: 4096
+  
+  # Rate limiting
+  rate_limit:
+    requests_per_minute: 60
+    tokens_per_minute: 100000
+
+# ============================================================================
+# Evaluator Configuration
+# ============================================================================
+evaluator:
+  # Trust levels: SANDBOX (Docker), RESTRICTED (subprocess), DIRECT (no isolation)
+  trust_level: "SANDBOX"
+  
+  # Docker sandbox settings
+  sandbox:
+    image: "python:3.11-slim"
+    memory_limit: "512m"
+    cpu_limit: 1.0
+    timeout_seconds: 30
+    network_disabled: true
+    
+  # Parallel evaluation
+  parallel:
+    enabled: true
+    max_workers: 4  # concurrent evaluations
+    
+  # Test case limits
+  max_test_cases: 100
+  test_timeout_seconds: 5.0
+
+# ============================================================================
+# Database Configuration
+# ============================================================================
+database:
+  backend: "sqlite"  # sqlite, json
+  path: "shipha_programs.db"
+  
+  # Novelty enforcement via embeddings
+  novelty:
+    enabled: true
+    embedding_model: "text-embedding-3-small"
+    min_distance: 0.1  # minimum cosine distance from existing programs
+    
+  # Cleanup old programs
+  retention:
+    max_programs: 1000
+    prune_strategy: "score"  # score, age, hybrid
+
+# ============================================================================
+# Prompt Templates
+# ============================================================================
+prompts:
+  # Meta-recommendations from top performers
+  meta:
+    enabled: true
+    top_k: 3  # analyze top K programs for patterns
+    
+  # Crossover operator
+  crossover:
+    enabled: true
+    num_parents: 2
+
+# ============================================================================
+# Logging & Monitoring
+# ============================================================================
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "rich"  # rich, json, plain
+  
+  # Save evolution history
+  history:
+    enabled: true
+    path: "evolution_history/"
+    save_every: 10  # generations
+
+# ============================================================================
+# LSP Server (for IDE integration)
+# ============================================================================
+lsp:
+  enabled: true
+  host: "127.0.0.1"
+  port: 8765
+  
+  # EVOLVE-BLOCK marker detection
+  markers:
+    start: "# EVOLVE-BLOCK-START"
+    end: "# EVOLVE-BLOCK-END"
+
+# ============================================================================
+# Hydra Configuration
+# ============================================================================
+hydra:
+  run:
+    dir: outputs/${evolution.task_name}/${now:%Y-%m-%d_%H-%M-%S}
+  sweep:
+    dir: multirun/${evolution.task_name}/${now:%Y-%m-%d_%H-%M-%S}
+    subdir: ${hydra.job.num}
