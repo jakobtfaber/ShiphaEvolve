@@ -1,0 +1,152 @@
+task_id: "ffa_boxcar_filter_v1"
+task_description: |
+  Evolve an optimized boxcar matched filter for Fast Folding Algorithm (FFA) pulsar detection.
+
+  The boxcar matched filter convolves a folded pulse profile with a boxcar kernel,
+  maximizing signal-to-noise ratio for box-shaped pulses. This is the computational
+  bottleneck in FFA periodicity searches.
+
+  Current baseline: O(n × width) direct convolution
+  Target: O(n) using prefix sums, FFT, or vectorized operations
+
+  Requirements:
+  1. CORRECTNESS: Output must match reference implementation within 1e-8 tolerance
+  2. SNR PRESERVATION: Detected SNR must be within 1% of reference
+  3. RUNTIME CONSTRAINT: Execution time must be within ±5% of baseline (constrained evolution)
+
+  The function performs circular convolution to handle phase wrap-around properly.
+
+function_name: "boxcar_matched_filter"
+allowed_imports: ["numpy", "math"]
+
+initial_code: |
+  def boxcar_matched_filter(profile: np.ndarray, width: int) -> np.ndarray:
+      """
+      Apply boxcar matched filter to a folded pulse profile.
+
+      Args:
+          profile: 1D array of folded pulse profile values
+          width: Width of boxcar kernel in bins (1 to len(profile)//2)
+
+      Returns:
+          Filtered profile with same length as input, normalized by sqrt(width)
+      """
+      n = len(profile)
+      width = min(width, n)
+
+      # Baseline implementation: direct convolution with wrap-around
+      # This is O(n * width) - can be improved to O(n)
+      result = np.zeros(n)
+      for i in range(n):
+          total = 0.0
+          for j in range(width):
+              idx = (i + j) % n
+              total += profile[idx]
+          result[i] = total
+
+      # Normalize for unit response to unit impulse
+      result /= np.sqrt(width)
+
+      return result
+
+evaluation:
+  type: "custom"
+  module: "ffa_demo.evaluator"
+  function: "evaluate_filter_function"
+  parameters:
+    correctness_tol: 1.0e-8
+    snr_error_tol: 0.01
+    enforce_runtime_constraint: true
+    profile_sizes: [64, 128, 256, 512]
+    widths: [1, 4, 8, 16, 32]
+
+tests:
+  - description: "Correctness on random profile"
+    name: "correctness_test"
+    test_cases:
+      - input: ["np.random.randn(128)", 8]
+        validation_func: |
+          def validate(result):
+              import numpy as np
+              # Reference implementation
+              profile = np.random.randn(128)
+              np.random.seed(42)  # Reset for reproducibility
+              profile = np.random.randn(128)
+              n = len(profile)
+              width = 8
+              
+              # Reference: numpy convolve
+              extended = np.concatenate([profile, profile[:width - 1]])
+              kernel = np.ones(width)
+              reference = np.convolve(extended, kernel, mode='valid')[:n]
+              reference /= np.sqrt(width)
+              
+              if result.shape != reference.shape:
+                  return f"Shape mismatch: {result.shape} vs {reference.shape}"
+              
+              max_diff = np.max(np.abs(result - reference))
+              if max_diff > 1e-8:
+                  return f"Numerical error too large: {max_diff}"
+              
+              return None  # Pass
+
+  - description: "Performance on large profile"
+    name: "performance_test"
+    test_cases:
+      - input: ["np.random.randn(1024)", 32]
+        validation_func: |
+          def validate(result):
+              if len(result) != 1024:
+                  return f"Expected 1024 elements, got {len(result)}"
+              return None
+
+  - description: "Edge case: width=1"
+    name: "width_one_test"
+    test_cases:
+      - input: ["np.array([1.0, 2.0, 3.0, 4.0])", 1]
+        validation_func: |
+          def validate(result):
+              import numpy as np
+              expected = np.array([1.0, 2.0, 3.0, 4.0])  # Width 1 = identity (normalized)
+              if not np.allclose(result, expected):
+                  return f"Width=1 should return normalized input"
+              return None
+
+evolution_config:
+  population_size: 10
+  generations: 20
+  mutation_rate: 0.2
+  crossover_rate: 0.7
+  elite_count: 2
+  timeout_seconds: 900  # 15 minutes
+
+hints:
+  enabled: false  # Use --enable-hints flag to activate
+  basic:
+    - "Consider using cumulative sums (prefix sums) for O(n) complexity"
+    - "NumPy has efficient vectorized operations that avoid Python loops"
+  advanced:
+    - |
+      Prefix-sum approach:
+      prefix = np.zeros(2*n + 1)
+      prefix[1:] = np.cumsum(np.tile(profile, 2))
+      result[i] = prefix[i + width] - prefix[i]
+    - |
+      FFT convolution (best for large width):
+      kernel_fft = np.fft.fft(np.concatenate([np.ones(width), np.zeros(n-width)]))
+      result = np.real(np.fft.ifft(np.fft.fft(profile) * kernel_fft))
+    - |
+      NumPy stride tricks for vectorized windows:
+      from numpy.lib.stride_tricks import sliding_window_view
+      padded = np.concatenate([profile, profile[:width-1]])
+      windows = sliding_window_view(padded, width)
+      result = np.sum(windows, axis=1)
+
+metadata:
+  domain: "pulsar_astronomy"
+  application: "fast_folding_algorithm"
+  difficulty: "intermediate"
+  expected_speedup: "5-50x"
+  references:
+    - "Morello et al. 2020, arXiv:2004.03701 (riptide)"
+    - "Kondratiev et al. 2009 (PRESTO folding)"

@@ -1,0 +1,29 @@
+server:
+  name: "AlphaEvolve LSP Server"
+  version: "1.0.0"
+  language: "python"
+  
+startup:
+  command: "python -m lsp_server.server"
+
+evolution:
+  max_generations: 20
+  population_size: 10
+  timeout_per_eval: 300
+  selection_strategy: "elitism"
+  mutation_rate: 0.7
+  
+logging:
+  level: "INFO"
+  file: "alphaevolve_lsp.log"
+
+models:
+  primary: "gemini-2.0-flash"
+  fallback: "gpt-4"
+  
+features:
+  code_actions: true
+  hover_info: true
+  code_lens: true
+  diagnostics: true
+  real_time_progress: true
