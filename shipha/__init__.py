@@ -16,13 +16,31 @@ Key Features:
 __version__ = "0.1.0"
 __author__ = "Jakob Faber"
 
-from shipha.core import EvolutionRunner, EvolutionConfig
-from shipha.database import ProgramDatabase, DatabaseConfig, Program
+# Core evaluation components
+from shipha.core import (
+    TrustLevel,
+    EvaluatorConfig,
+    TestCase,
+    TestGroup,
+    EvaluationResult,
+    ParallelEvaluator,
+    evaluate_programs,
+)
+
+# LLM selection with multi-armed bandits
+from shipha.llm.bandit import AsymmetricUCB, BanditBase, FixedSampler
 
 __all__ = [
-    "EvolutionRunner",
-    "EvolutionConfig",
-    "ProgramDatabase",
-    "DatabaseConfig",
-    "Program",
+    # Core
+    "TrustLevel",
+    "EvaluatorConfig",
+    "TestCase",
+    "TestGroup",
+    "EvaluationResult",
+    "ParallelEvaluator",
+    "evaluate_programs",
+    # LLM
+    "AsymmetricUCB",
+    "BanditBase",
+    "FixedSampler",
 ]
