@@ -60,9 +60,17 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.5.0",
     "pre-commit>=3.0.0",
+    # Tree-sitter for stub generator (optional, falls back to ast)
+    "tree-sitter>=0.25.0",
+    "tree-sitter-python>=0.25.0",
 ]
 slurm = [
     "submitit>=1.4.0",  # FAIR's Slurm job submission
+]
+tools = [
+    # Tree-sitter for advanced parsing in stub generator
+    "tree-sitter>=0.25.0",
+    "tree-sitter-python>=0.25.0",
 ]
 notebooks = [
     "jupyter>=1.0.0",
